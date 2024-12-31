@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -6,7 +7,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:123456@127.0.0.1:3306/magic"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
+CORS(app)
 Base = declarative_base()
 engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"], echo=True)
 SessionLocal = sessionmaker(bind=engine)
@@ -24,16 +25,19 @@ Base.metadata.create_all(engine)
 
 @app.route("/get_user_list", methods=["GET"])
 def get_user_list():
+    page = request.args.get("page", 1, type=int)
     session = SessionLocal()
-    users = session.query(User).all()
+    users = session.query(User).offset((page - 1) * 5).limit(5).all()
+    total_users = session.query(User).count()
     user_list = [{"id": u.id, "name": u.name, "gender": u.gender} for u in users]
     session.close()
-    return jsonify(user_list)
+    return jsonify({"data": user_list, "page": page, "total": total_users})
 
 
 @app.route("/add_user", methods=["POST"])
 def add_user():
     data = request.get_json()
+    print(data)
     new_user = User(name=data["name"], gender=data["gender"])
     session = SessionLocal()
     session.add(new_user)

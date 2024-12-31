@@ -45,11 +45,13 @@ watch(() => props.defaultValues, (newValues) => {
 
 const handleCancel = () => {
     emit('update:isVisible', false);
+    form.value = {}
 };
 
 const handleSubmit = () => {
     emit('submit', form.value);
     emit('update:isVisible', false);
+    form.value = {}
 };
 </script>
 

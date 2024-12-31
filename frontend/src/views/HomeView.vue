@@ -36,7 +36,7 @@
     <div class="flex justify-center mt-4 space-x-2">
       <button class="px-3 py-1 border rounded hover:bg-gray-100" @click="prevPage" :disabled="currentPage === 1">
         < </button>
-          <button v-for="page in totalPages" :key="page" class="px-3 py-1 border rounded hover:bg-gray-100"
+          <button v-for="page in Math.ceil(totalPages/5)" :key="page" class="px-3 py-1 border rounded hover:bg-gray-100"
             :class="{ 'bg-blue-500 text-white': currentPage === page }" @click="goToPage(page)">
             {{ page }}
           </button>
@@ -51,9 +51,10 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import EditDialog from '@/components/EditDialog.vue'
-
+import { addUser, editUser, getUsers } from '@/api'
+// edit
 const isEditDialogVisible = ref(false);
 const editDialogDefaultValues = ref<{ name: string, gender: string } | undefined>(undefined);
 
@@ -71,37 +72,58 @@ const handleCloseEditDialog = () => {
   editDialogDefaultValues.value = undefined
 };
 
-const handleEditDialogSubmit = (values: any) => {
+const handleEditDialogSubmit = async (values: any) => {
+  if (values.id) {
+    const res = await editUser(values.id, values.name, values.gender)
+  } else {
+    const res = await addUser(values.name, values.gender)
+  }
 
-  console.log(values)
+  getUsersData()
   editDialogDefaultValues.value = undefined
 }
 
+
+// user list
 interface User {
   id: number;
   name: string;
   gender: string;
 }
 
-const users = ref<User[]>([
-  { id: 1, name: 'apple', gender: 'female' },
-  { id: 2, name: 'bill', gender: 'male' },
-  // Add more sample users here...
-]);
+const users = ref<User[]>([]);
 
 const currentPage = ref<number>(1);
-const totalPages = ref<number>(2); // Adjust this based on your data
+const totalPages = ref<number>(0); // Adjust this based on your data
+
+const getUsersData = async () => {
+  const response = await getUsers(currentPage.value);
+  users.value = response.data
+  totalPages.value = response.total
+  currentPage.value = response.page
+};
+
+onMounted(() => {
+  getUsersData();
+});
 
 const prevPage = () => {
-  if (currentPage.value > 1) currentPage.value--;
+  if (currentPage.value > 1) {
+    currentPage.value--
+    getUsersData()
+  };
 };
 
 const nextPage = () => {
-  if (currentPage.value < totalPages.value) currentPage.value++;
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++
+    getUsersData()
+  };
 };
 
 const goToPage = (page: number) => {
   currentPage.value = page;
+  getUsersData()
 };
 </script>
 
